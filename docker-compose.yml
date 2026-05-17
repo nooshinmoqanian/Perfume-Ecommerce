@@ -1,0 +1,127 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+  mongo:
+    image: mongo:6.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+
+  # ── Initialises the replica set once mongo is ready ──
+  mongo-init-replica:
+    image: mongo:6.0
+    restart: "no"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+        echo 'Initiating replica set...';
+        mongosh --host mongo --eval '
+          try { rs.initiate({ _id: \"rs0\", members: [{ _id: 0, host: \"mongo:27017\" }] }) }
+          catch(e) { print(e) }
+        ';
+        echo 'Done';
+      "
+
+  mongo-express:
+    image: mongo-express:latest
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_ROOT_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    ports:
+      - "8081:8081"
+
+  order-service:
+    build: ./order-service
+    depends_on:
+      kafka:
+        condition: service_started
+      mongo:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER: ${KAFKA_BROKER}
+      MONGO_URI: mongodb://mongo:27017/${ORDER_DB}?replicaSet=rs0
+    ports:
+      - "${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}"
+
+  inventory-service:
+    build: ./inventory-service
+    depends_on:
+      kafka:
+        condition: service_started
+      mongo:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER: ${KAFKA_BROKER}
+      MONGO_URI: mongodb://mongo:27017/${INVENTORY_DB}?replicaSet=rs0
+    ports:
+      - "${INVENTORY_SERVICE_PORT}:${INVENTORY_SERVICE_PORT}"
+
+  notification-service:
+    build: ./notification-service
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER: ${KAFKA_BROKER}
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - ./auth-service/.env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/${AUTH_DB}?replicaSet=rs0
+      JWT_SECRET: ${JWT_SECRET}
+      DEV_ADMIN_TOKEN: ${DEV_ADMIN_TOKEN}
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    depends_on:
+      - kafka
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+
+volumes:
+  mongo-data:
