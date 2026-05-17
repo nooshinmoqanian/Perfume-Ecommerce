@@ -3,14 +3,15 @@ import { AuthRequest } from '../types/auth';
 import parseRegisterBody from '../dtos/register.dto';
 import parseLoginBody from '../dtos/login.dto';
 import AuthService from '../services/auth.service';
-import UserService from '../services/user.service';
+import { IUserService } from '../interfaces/user-service.interface';
+import { IAuthService } from '../interfaces/auth-service.interface';
 import { buildAuthResponse } from '../helpers/auth.helper';
 import { AppError } from '../../../libs/common/errors';
 import { info, error } from '../../../libs/common/logger';
 import { getEntityId } from '../../../libs/common/id';
 
-export default function AuthController(userService?: UserService) {
-  const authService = new AuthService(userService);
+export default function AuthController(userService?: IUserService) {
+  const authService: IAuthService = new AuthService(userService);
 
   async function registerController(req: Request, res: Response, next: NextFunction) {
     const parsedResult = parseRegisterBody(req.body);

@@ -1,16 +1,18 @@
-import UserRepository, { userRepository } from '../repositories/user.repository';
+import { userRepository } from '../repositories/user.repository';
 import { RepoUser } from '../types/user';
 import bcrypt from 'bcryptjs';
 import { AppError } from '../../../libs/common/errors';
 import { info } from '../../../libs/common/logger';
+import { IUserRepository } from '../interfaces/user-repository.interface';
+import { IUserService, PublicUser } from '../interfaces/user-service.interface';
 
 function isValidRole(r: unknown) {
   return typeof r === 'string' && (r === 'user' || r === 'admin');
 }
 
-export default class UserService {
-  private repo: UserRepository;
-  constructor(repo?: UserRepository) {
+export default class UserService implements IUserService {
+  private repo: IUserRepository;
+  constructor(repo?: IUserRepository) {
     this.repo = repo ?? userRepository;
   }
 
@@ -80,7 +82,7 @@ export default class UserService {
       throw new AppError('DB_ERROR', 'Failed to create user', 500);
     }
     // remove password before returning by returning a shallow copy without password
-    const safeCreated: any = Object.assign({}, created);
+    const safeCreated: PublicUser & { password?: string } = Object.assign({}, created);
     if (safeCreated.password) delete safeCreated.password;
     // previously emitted user.created to Kafka; now log instead
     try { info({ scope: 'auth', action: 'user_created', id: (created as any)._id?.toString?.() || (created as any).id, email: created.email }); } catch (e) { console.warn('Failed to log user.created event', e); }
@@ -94,7 +96,7 @@ export default class UserService {
       if (!user) return null;
       const isMatch = await bcrypt.compare(password, (user as RepoUser).password);
       if (!isMatch) return null;
-      const safeUser: any = Object.assign({}, user);
+      const safeUser: PublicUser & { password?: string } = Object.assign({}, user);
       if (safeUser.password) delete safeUser.password;
       return safeUser;
     } catch (error) {

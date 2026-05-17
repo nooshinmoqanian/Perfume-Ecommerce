@@ -1,11 +1,11 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types/auth';
-import UserService from '../services/user.service';
+import { IUserService } from '../interfaces/user-service.interface';
 import { getPaginationParams, sendPaginated } from '../../../libs/common/pagination';
 import { info, error } from '../../../libs/common/logger';
 import { AppError } from '../../../libs/common/errors';
 
-export default function makeUserController(userService: UserService) {
+export default function makeUserController(userService: IUserService) {
 
   async function listUsersController(req: AuthRequest, res: Response, next: NextFunction) {
     try {

@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { authRequired, requireAdmin } from '../middleware/auth';
 import makeUserController from '../controllers/user.controller';
-import UserService from '../services/user.service';
+import { IUserService } from '../interfaces/user-service.interface';
 import requestLogger from '../middleware/request-logger';
 import errorHandler from '../middleware/error.middleware';
 
-export default function makeUserRouter(userService: UserService) {
+export default function makeUserRouter(userService: IUserService) {
 
 	const router = Router();
 

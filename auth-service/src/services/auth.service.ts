@@ -2,11 +2,13 @@ import UserService from './user.service';
 import { signToken } from '../../../libs/common/jwt';
 import { getEntityId } from '../../../libs/common/id';
 import { AppError } from '../../../libs/common/errors';
+import { IUserService } from '../interfaces/user-service.interface';
+import { IAuthService } from '../interfaces/auth-service.interface';
 
-export default class AuthService {
-  private userService: UserService;
+export default class AuthService implements IAuthService {
+  private userService: IUserService;
 
-  constructor(userService?: UserService) {
+  constructor(userService?: IUserService) {
     this.userService = userService ?? new UserService();
   }
 

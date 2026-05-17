@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import makeAuthController from '../controllers/auth.controller';
 import { authRequired } from '../middleware/auth';
-import UserService from '../services/user.service';
+import { IUserService } from '../interfaces/user-service.interface';
 
 
-export default function makeAuthRouter(userService: UserService) {
+export default function makeAuthRouter(userService: IUserService) {
 	const router = Router();
 	const { registerController, loginController, meController } = makeAuthController(userService);
 

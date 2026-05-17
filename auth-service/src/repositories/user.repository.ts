@@ -4,8 +4,9 @@ import { User } from '../models/user';
 import { RepoUser } from '../types/user';
 import { normalizePagination } from '../../../libs/common/pagination';
 import { PaginationOpts } from '../types/pagination';
+import { IUserRepository } from '../interfaces/user-repository.interface';
 
-export default class UserRepository {
+export default class UserRepository implements IUserRepository {
   private db: Db;
   constructor() {
     this.db = getDb();
@@ -78,4 +79,4 @@ export default class UserRepository {
   }
 }
 
-export const userRepository = new UserRepository();
+export const userRepository: IUserRepository = new UserRepository();
