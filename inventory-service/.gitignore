@@ -1,0 +1,15 @@
+# Node
+node_modules/
+# Build
+dist/
+# Env
+.env
+.env.*
+# Editor
+.vscode/
+.DS_Store
+# Logs
+npm-debug.log*
+*.log
+# TypeScript
+*.tsbuildinfo
