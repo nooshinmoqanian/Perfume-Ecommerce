@@ -77,7 +77,9 @@ services:
       - "${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}"
 
   inventory-service:
-    build: ./inventory-service
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
     depends_on:
       kafka:
         condition: service_started
