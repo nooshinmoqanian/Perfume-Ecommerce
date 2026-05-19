@@ -1,0 +1,26 @@
+{
+  "name": "order-service",
+  "version": "1.0.0",
+  "description": "Order service",
+  "main": "dist/order-service/src/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/order-service/src/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@types/express": "^4.17.25",
+    "cors": "^2.8.5",
+    "express": "^4.22.2",
+    "kafkajs": "^2.2.4",
+    "mongodb": "^5.6.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/node": "^20.4.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
