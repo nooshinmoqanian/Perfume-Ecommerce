@@ -8,7 +8,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.get('/products', asyncHandler(listProducts));
 router.get('/categories', asyncHandler(listCategories));
-router.post('/categories', asyncHandler(createCategoryRoute));
+// POST path changed to /categories/add to avoid collision with GET
+router.post('/categories/add', asyncHandler(createCategoryRoute));
 router.delete('/categories/:id', asyncHandler(deleteCategoryRoute));
 router.get('/products/:id', asyncHandler(getProductById));
 router.post('/products', upload.single('image'), asyncHandler(createProduct));

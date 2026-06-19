@@ -13,4 +13,6 @@ COPY libs/ ../libs/
 RUN ln -s /app/node_modules /libs/node_modules
 
 RUN npm run build
-CMD ["node", "dist/index.js"]
+# If libs are TypeScript sources, run with ts-node in the container during development builds
+# so runtime can import TS files from ../libs without needing separate transpile step.
+CMD ["npx", "ts-node", "src/index.ts"]
