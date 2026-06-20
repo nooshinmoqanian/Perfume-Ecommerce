@@ -4,7 +4,7 @@ import { User } from '../models/user';
 import { RepoUser } from '../types/user';
 import { normalizePagination } from '../../../libs/common/pagination';
 import { PaginationOpts } from '../types/pagination';
-import { IUserRepository } from '../interfaces/user-repository.interface';
+import { IUserRepository, ProfileFields } from '../interfaces/user-repository.interface';
 import { dbGuard } from '../../../libs/common/db-guard';
 
 export default class UserRepository implements IUserRepository {
@@ -42,6 +42,15 @@ export default class UserRepository implements IUserRepository {
     return dbGuard(async () => {
       const updateResult = await this.col().updateOne({ _id: objectId }, { $set: { role } });
       return updateResult.modifiedCount > 0;
+    });
+  }
+
+  // Update self-editable profile fields (name / phone / address).
+  async updateProfile(id: string, profile: ProfileFields) {
+    const objectId = new ObjectId(id);
+    return dbGuard(async () => {
+      const updateResult = await this.col().updateOne({ _id: objectId }, { $set: profile });
+      return updateResult.matchedCount > 0;
     });
   }
 

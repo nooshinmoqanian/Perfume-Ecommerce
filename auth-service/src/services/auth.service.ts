@@ -39,6 +39,26 @@ export default class AuthService implements IAuthService {
 
   async meFromAuth(auth: { id: string; email: string; role: string } | undefined) {
     if (!auth) throw new AppError('UNAUTHORIZED', 'Missing auth', 401);
-    return { id: auth.id, email: auth.email, role: auth.role };
+    const base = { id: auth.id, email: auth.email, role: auth.role };
+    // Enrich with stored profile fields for real (DB-backed) users.
+    // The dev-admin token has no DB record, so it falls back to the token claims.
+    if (auth.id && auth.id !== 'dev') {
+      try {
+        const user = await this.userService.getById(auth.id) as any;
+        if (user) {
+          return {
+            id: auth.id,
+            email: user.email || auth.email,
+            role: user.role || auth.role,
+            name: user.name || '',
+            phone: user.phone || '',
+            address: user.address || '',
+          };
+        }
+      } catch (e) {
+        console.warn('meFromAuth: failed to load profile', e);
+      }
+    }
+    return base;
   }
 }

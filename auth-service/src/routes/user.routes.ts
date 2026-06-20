@@ -9,8 +9,10 @@ export default function makeUserRouter(userService: IUserService) {
 
 	const router = Router();
 
-	const { listUsersController, setRoleController, getPurchasesController, adminDashboardController } = makeUserController(userService);
+	const { listUsersController, setRoleController, getPurchasesController, adminDashboardController, updateMeController } = makeUserController(userService);
 
+	// Self-service profile update for the signed-in user.
+	router.put('/me', authRequired, updateMeController);
 	router.get('/users', authRequired, requireAdmin, listUsersController);
 	router.put('/users/:id/role', authRequired, requireAdmin, setRoleController);
 	router.get('/users/:id/purchases', authRequired, getPurchasesController);

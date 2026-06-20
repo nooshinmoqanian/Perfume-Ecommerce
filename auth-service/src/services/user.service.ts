@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { AppError } from '../../../libs/common/errors';
 import { info } from '../../../libs/common/logger';
 import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IUserService, PublicUser } from '../interfaces/user-service.interface';
+import { IUserService, ProfileUpdate, PublicUser } from '../interfaces/user-service.interface';
 
 function isValidRole(r: unknown) {
   return typeof r === 'string' && (r === 'user' || r === 'admin');
@@ -34,6 +34,42 @@ export default class UserService implements IUserService {
       console.warn('user.service: getById failed', error);
       throw new AppError('DB_ERROR', 'Failed to fetch user', 500);
     }
+  }
+
+  // Build the public, password-free view of a user record.
+  private toPublicUser(u: RepoUser | null): PublicUser | null {
+    if (!u) return null;
+    const raw = u as any;
+    return {
+      id: String(raw._id || raw.id),
+      email: raw.email,
+      role: raw.role,
+      name: raw.name || '',
+      phone: raw.phone || '',
+      address: raw.address || '',
+      createdAt: raw.createdAt,
+    };
+  }
+
+  // Update the user's own profile fields and return the refreshed public view.
+  async updateProfile(id: string, fields: ProfileUpdate): Promise<PublicUser | null> {
+    const allowed: ProfileUpdate = {};
+    if (typeof fields?.name === 'string') allowed.name = fields.name.trim();
+    if (typeof fields?.phone === 'string') allowed.phone = fields.phone.trim();
+    if (typeof fields?.address === 'string') allowed.address = fields.address.trim();
+
+    let ok = false;
+    try {
+      ok = await this.repo.updateProfile(id, allowed);
+    } catch (error) {
+      console.warn('user.service: updateProfile failed', error);
+      throw new AppError('DB_ERROR', 'Failed to update profile', 500);
+    }
+    if (!ok) throw new AppError('NOT_FOUND', 'User not found', 404);
+
+    const updated = await this.repo.findById(id);
+    try { info({ scope: 'auth', action: 'user_profile_updated', id }); } catch (e) { console.warn('Failed to log user.profile.updated event', e); }
+    return this.toPublicUser(updated);
   }
 
   async setRole(userId: string, role: string) {

@@ -34,6 +34,21 @@ export default function makeUserController(userService: IUserService) {
     }
   }
 
+  async function updateMeController(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const auth = req.auth as { id: string; role: string } | undefined;
+      if (!auth || !auth.id || auth.id === 'dev') {
+        throw new AppError('FORBIDDEN', 'profile not editable', 403);
+      }
+      const result = await userService.updateProfile(auth.id, (req.body as any) || {});
+      info({ scope: 'user', action: 'update_profile_success', id: auth.id });
+      return res.json(result);
+    } catch (err) {
+      error({ scope: 'user', action: 'update_profile_failed' }, err);
+      return next(err);
+    }
+  }
+
   async function getPurchasesController(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.params.id as string | undefined;
@@ -65,5 +80,5 @@ export default function makeUserController(userService: IUserService) {
     }
   }
 
-  return { listUsersController, setRoleController, getPurchasesController, adminDashboardController };
+  return { listUsersController, setRoleController, getPurchasesController, adminDashboardController, updateMeController };
 };

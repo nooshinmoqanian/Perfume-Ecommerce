@@ -5,13 +5,23 @@ export type PublicUser = {
   _id?: { toString(): string } | string;
   email: string;
   role: 'user' | 'admin';
+  name?: string;
+  phone?: string;
+  address?: string;
   createdAt?: string;
+};
+
+export type ProfileUpdate = {
+  name?: string;
+  phone?: string;
+  address?: string;
 };
 
 export interface IUserService {
   listUsers(opts?: { page?: number; limit?: number; q?: string }): Promise<{ users: PublicUser[]; total: number }>;
   getById(id: string): Promise<RepoUser | null>;
   setRole(userId: string, role: string): Promise<{ updated: boolean }>;
+  updateProfile(id: string, fields: ProfileUpdate): Promise<PublicUser | null>;
   register(email: string, password: string, role?: 'user' | 'admin'): Promise<PublicUser>;
   login(email: string, password: string): Promise<PublicUser | null>;
   getPurchasesByEmail(email: string): Promise<unknown>;
