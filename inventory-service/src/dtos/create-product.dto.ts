@@ -1,6 +1,7 @@
 import { plainToInstance, Transform } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsString,
@@ -30,6 +31,14 @@ function asFiniteNumber(value: unknown): unknown {
 function asFeatures(value: unknown): unknown {
   const normalizedFeatures = normalizeFeaturesValue(value, { emptyAsUndefined: true });
   return normalizedFeatures === undefined ? value : normalizedFeatures;
+}
+
+function asBoolean(value: unknown): unknown {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value === 'boolean') return value;
+  if (value === 'true' || value === '1' || value === 1) return true;
+  if (value === 'false' || value === '0' || value === 0) return false;
+  return value;
 }
 
 function collectMessages(errors: ValidationError[], prefix = ''): string[] {
@@ -89,6 +98,16 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   extraDescription?: string;
+
+  @Transform(({ value }) => asFiniteNumber(value))
+  @IsOptional()
+  @IsNumber({ allowInfinity: false, allowNaN: false })
+  discount?: number;
+
+  @Transform(({ value }) => asBoolean(value))
+  @IsOptional()
+  @IsBoolean()
+  specialOffer?: boolean;
 }
 
 export function validateCreateProductDto(body: any): CreateProductDto {

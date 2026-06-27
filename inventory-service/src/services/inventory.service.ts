@@ -253,6 +253,8 @@ class InventoryService implements InventoryServiceInterface {
       features: dto.features,
       extraDescription: dto.extraDescription,
       imageUrl: dto.imageUrl,
+      discount: dto.discount !== undefined ? Math.min(100, Math.max(0, dto.discount)) : undefined,
+      specialOffer: dto.specialOffer,
       createdAt: new Date().toISOString(),
       reserved: 0,
     };

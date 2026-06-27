@@ -17,5 +17,9 @@ export type Product = {
   features?: string[];
   // additional free-form description
   extraDescription?: string;
+  // special-offer discount percentage (0-100), managed from the admin panel
+  discount?: number;
+  // when true, the product is featured in the homepage "special offers" section
+  specialOffer?: boolean;
   createdAt?: string;
 };

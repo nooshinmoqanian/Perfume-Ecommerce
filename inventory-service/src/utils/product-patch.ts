@@ -55,6 +55,18 @@ export function buildProductPatch(body: any): Partial<Product> {
     patch.extraDescription = body.extraDescription.trim();
   }
 
+  if (body.discount !== undefined) {
+    const n = Number(body.discount);
+    if (!Number.isFinite(n)) throw new BadRequestError('discount must be a number');
+    // clamp to a sane percentage range
+    patch.discount = Math.min(100, Math.max(0, n));
+  }
+
+  if (body.specialOffer !== undefined) {
+    patch.specialOffer =
+      body.specialOffer === true || body.specialOffer === 'true' || body.specialOffer === 1 || body.specialOffer === '1';
+  }
+
   return patch;
 }
 
