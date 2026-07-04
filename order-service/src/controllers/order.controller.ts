@@ -15,8 +15,19 @@ export function createOrderController(orderService: OrderServiceInterface) {
     return res.status(201).json(order);
   });
 
-  const listOrders = asyncHandler(async (_req: Request, res: Response) => {
-    const orders = await orderService.listOrders();
+  const listOrders = asyncHandler(async (req: Request, res: Response) => {
+    // Optional filters so a signed-in user can list only their own orders.
+    // (Admin/dev tooling calls without filters to get everything.)
+    const { userId, customerEmail } = req.query;
+    const filter: Record<string, unknown> = {};
+    if (typeof userId === 'string' && userId.trim()) {
+      filter.userId = userId.trim();
+    }
+    if (typeof customerEmail === 'string' && customerEmail.trim()) {
+      filter.customerEmail = customerEmail.trim().toLowerCase();
+    }
+
+    const orders = await orderService.listOrders(filter);
     return res.json(orders);
   });
 

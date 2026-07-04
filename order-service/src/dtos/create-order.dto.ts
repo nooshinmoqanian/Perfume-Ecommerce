@@ -13,6 +13,7 @@ export const CreateOrderSchema = zod.object({
   total: zod.number().nonnegative(),
   cartId: zod.string().optional(),
   userId: zod.string().optional(),
+  customerEmail: zod.string().optional(),
   recipientName: zod.string().optional(),
   phone: zod.string().min(3),
   shippingAddress: zod.string().min(5),

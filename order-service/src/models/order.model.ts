@@ -10,6 +10,8 @@ export type Order = {
   total: number;
   cartId?: string;
   userId?: string;
+  // Email of the account that placed the order (used to list a user's own orders).
+  customerEmail?: string;
   recipientName?: string;
   phone: string;
   shippingAddress: string;
