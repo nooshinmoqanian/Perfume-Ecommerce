@@ -1,6 +1,7 @@
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
     ports:
@@ -8,6 +9,7 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    restart: unless-stopped
     depends_on:
       - zookeeper
     environment:
@@ -17,9 +19,16 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
       - "9092:9092"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
 
   mongo:
     image: mongo:6.0
+    restart: unless-stopped
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
@@ -65,11 +74,14 @@ services:
 
   order-service:
     build: ./order-service
+    restart: unless-stopped
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
       mongo:
         condition: service_healthy
+      mongo-init-replica:
+        condition: service_completed_successfully
     environment:
       KAFKA_BROKER: ${KAFKA_BROKER}
       MONGO_URI: mongodb://mongo:27017/${ORDER_DB}?replicaSet=rs0
@@ -80,11 +92,14 @@ services:
     build:
       context: .
       dockerfile: inventory-service/Dockerfile
+    restart: unless-stopped
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
       mongo:
         condition: service_healthy
+      mongo-init-replica:
+        condition: service_completed_successfully
     environment:
       KAFKA_BROKER: ${KAFKA_BROKER}
       MONGO_URI: mongodb://mongo:27017/${INVENTORY_DB}?replicaSet=rs0
@@ -93,8 +108,10 @@ services:
 
   notification-service:
     build: ./notification-service
+    restart: unless-stopped
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     environment:
       KAFKA_BROKER: ${KAFKA_BROKER}
     ports:
@@ -104,9 +121,12 @@ services:
     build:
       context: .
       dockerfile: auth-service/Dockerfile
+    restart: unless-stopped
     depends_on:
       mongo:
         condition: service_healthy
+      mongo-init-replica:
+        condition: service_completed_successfully
     env_file:
       - ./auth-service/.env
     environment:
@@ -118,8 +138,10 @@ services:
 
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
+    restart: unless-stopped
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "9000:9000"
     environment:

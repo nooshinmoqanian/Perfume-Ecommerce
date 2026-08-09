@@ -20,4 +20,7 @@ ENV PORT=3004
 
 EXPOSE 3004
 
-CMD ["node", "dist/index.js"]
+# dist/ holds two emitted layouts; the nested one is current and resolves
+# the ../../../libs/common/* requires against dist/libs. The flat dist/*.js
+# is a stale build whose libs paths escape /app.
+CMD ["node", "dist/auth-service/src/index.js"]
