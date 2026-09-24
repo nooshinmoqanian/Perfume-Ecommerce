@@ -5,6 +5,9 @@ import { AppError } from '../../../libs/common/errors';
 import { IUserService } from '../interfaces/user-service.interface';
 import { IAuthService } from '../interfaces/auth-service.interface';
 
+// No refresh-token flow yet, so keep shop sessions alive for a day.
+const TOKEN_TTL = process.env.JWT_EXPIRES_IN || '1d';
+
 export default class AuthService implements IAuthService {
   private userService: IUserService;
 
@@ -16,7 +19,7 @@ export default class AuthService implements IAuthService {
     try {
       const created = await this.userService.register(email, password, role);
       const id = getEntityId(created);
-      const token = signToken({ id, role: created.role });
+      const token = signToken({ id, email: created.email, role: created.role }, { expiresIn: TOKEN_TTL });
       return { token, user: created };
     } catch (err: unknown) {
       // map duplicate key to AppError with code and 409
@@ -33,7 +36,7 @@ export default class AuthService implements IAuthService {
       throw new AppError('INVALID_CREDENTIALS', 'Invalid email or password', 401);
     }
     const id = getEntityId(user);
-    const token = signToken({ id, role: user.role });
+    const token = signToken({ id, email: user.email, role: user.role }, { expiresIn: TOKEN_TTL });
     return { token, user };
   }
 

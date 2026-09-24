@@ -9,6 +9,22 @@ import { buildAuthResponse } from '../helpers/auth.helper';
 import { AppError } from '../../../libs/common/errors';
 import { info, error } from '../../../libs/common/logger';
 import { getEntityId } from '../../../libs/common/id';
+import { verifyToken } from '../../../libs/common/jwt';
+
+// Public sign-up always creates a plain user; only an authenticated admin
+// (e.g. the admin panel's "create user") may assign another role.
+function isAdminCaller(req: Request): boolean {
+  const header = req.get('authorization');
+  if (!header || !header.startsWith('Bearer ')) return false;
+  const token = header.slice(7);
+  const devToken = process.env.DEV_ADMIN_TOKEN || '';
+  if (devToken && token === devToken) return true;
+  try {
+    return (verifyToken(token) as { role?: string })?.role === 'admin';
+  } catch {
+    return false;
+  }
+}
 
 export default function AuthController(userService?: IUserService) {
   const authService: IAuthService = new AuthService(userService);
@@ -20,6 +36,9 @@ export default function AuthController(userService?: IUserService) {
     }
     const parsed = parsedResult.value;
 
+    if (parsed.role !== 'user' && !isAdminCaller(req)) {
+      return next(new AppError('FORBIDDEN', 'only admins can assign roles', 403));
+    }
     info({ scope: 'auth', action: 'register_attempt', email: parsed.email });
 
     try {
