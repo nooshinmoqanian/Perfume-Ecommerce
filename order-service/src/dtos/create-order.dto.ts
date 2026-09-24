@@ -4,16 +4,12 @@ import MESSAGES from '../errors/messages';
 
 export const CreateOrderItemSchema = zod.object({
   productId: zod.string().min(1),
-  quantity: zod.number().int().positive(),
-  price: zod.number().optional(),
+  quantity: zod.number().int().positive().max(100),
 });
 
 export const CreateOrderSchema = zod.object({
-  items: zod.array(CreateOrderItemSchema).min(1),
-  total: zod.number().nonnegative(),
+  items: zod.array(CreateOrderItemSchema).min(1).max(50),
   cartId: zod.string().optional(),
-  userId: zod.string().optional(),
-  customerEmail: zod.string().optional(),
   recipientName: zod.string().optional(),
   phone: zod.string().min(3),
   shippingAddress: zod.string().min(5),

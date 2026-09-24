@@ -10,6 +10,9 @@ const MESSAGES = {
   DB_ERROR: 'Database error',
   INTERNAL_ERROR: 'Internal error',
   INVALID_PAYLOAD: 'Invalid request payload',
+  PRODUCT_NOT_FOUND: 'Product not found',
+  CATALOG_UNAVAILABLE: 'Product catalog is unavailable',
+  ORDER_EMPTY_TOTAL: 'Order total must be greater than zero',
 } as const;
 
 export default MESSAGES;

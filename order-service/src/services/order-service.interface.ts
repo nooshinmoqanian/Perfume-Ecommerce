@@ -6,6 +6,8 @@ import type { IOrderItemRepository } from '../interfaces/order-item-repository.i
 import type { IOrderEventPublisher } from '../interfaces/order-event-publisher.interface';
 import type { InventoryStatusEventPayload } from '../kafka/types';
 
+export type OrderBuyer = { id: string; email?: string };
+
 export interface OrderServiceInterface {
   setDependencies(
     orderRepo: IOrderRepository,
@@ -13,7 +15,7 @@ export interface OrderServiceInterface {
     eventPublisher: IOrderEventPublisher
   ): void;
   listOrders(filter?: Filter<Order>): Promise<Order[]>;
-  createOrder(payload: CreateOrderDto, requestId?: string): Promise<Order>;
+  createOrder(payload: CreateOrderDto, buyer: OrderBuyer, requestId?: string): Promise<Order>;
   handleInventoryEvent(event: InventoryStatusEventPayload): Promise<void>;
 }
 

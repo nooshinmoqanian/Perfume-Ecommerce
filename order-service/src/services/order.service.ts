@@ -1,5 +1,5 @@
 import { CreateOrderDto } from '../dtos/create-order.dto';
-import { AppError } from '../errors/app-errors';
+import { AppError, BadRequestError } from '../errors/app-errors';
 import MESSAGES from '../errors/messages';
 import type { IOrderEventPublisher } from '../interfaces/order-event-publisher.interface';
 import type { IOrderItemRepository } from '../interfaces/order-item-repository.interface';
@@ -7,7 +7,9 @@ import type { IOrderRepository } from '../interfaces/order-repository.interface'
 import type { InventoryStatusEventPayload } from '../kafka/types';
 import { Order } from '../models/order.model';
 import type { Filter } from 'mongodb';
-import type { OrderServiceInterface } from './order-service.interface';
+import type { OrderBuyer, OrderServiceInterface } from './order-service.interface';
+import { effectiveUnitPrice, fetchProduct } from './catalog.client';
+import { randomBytes } from 'crypto';
 
 class OrderService implements OrderServiceInterface {
   private orderRepo?: IOrderRepository;
@@ -84,19 +86,48 @@ class OrderService implements OrderServiceInterface {
     }
   }
 
-  async createOrder(payload: CreateOrderDto, requestId?: string): Promise<Order> {
+  // Merge duplicate lines and price every item from the catalog.
+  private async priceItems(items: CreateOrderDto['items']): Promise<Order['items']> {
+    const quantities = new Map<string, number>();
+    for (const it of items) {
+      quantities.set(it.productId, (quantities.get(it.productId) || 0) + it.quantity);
+    }
+
+    return Promise.all(
+      Array.from(quantities, async ([productId, quantity]) => {
+        const product = await fetchProduct(productId);
+        return { productId, name: product.name, quantity, price: effectiveUnitPrice(product) };
+      })
+    );
+  }
+
+  async createOrder(payload: CreateOrderDto, buyer: OrderBuyer, requestId?: string): Promise<Order> {
     const eventPublisher = this.getEventPublisher();
 
     this.getOrderRepo();
     this.getOrderItemRepo();
 
-    const id = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const items = await this.priceItems(payload.items);
+    const total = items.reduce((sum, it) => sum + (it.price || 0) * it.quantity, 0);
+    if (total <= 0) {
+      throw new BadRequestError(MESSAGES.ORDER_EMPTY_TOTAL);
+    }
+
+    const id = `${Date.now()}-${randomBytes(3).toString('hex')}`;
 
     const order: Order = {
       id,
       createdAt: new Date().toISOString(),
       status: 'processing',
-      ...payload,
+      cartId: payload.cartId,
+      recipientName: payload.recipientName,
+      phone: payload.phone,
+      shippingAddress: payload.shippingAddress,
+      postalCode: payload.postalCode,
+      items,
+      total,
+      userId: buyer.id,
+      customerEmail: buyer.email?.toLowerCase(),
     };
 
     await this.persistOrder(order);
@@ -122,11 +153,27 @@ class OrderService implements OrderServiceInterface {
 
     const newStatus: Order['status'] = event.status === 'approved' ? 'completed' : 'failed';
 
+    // Only a still-processing order may move on, so a redelivered event
+    // can never commit the same stock twice.
+    let moved: boolean;
     try {
-      await repo.updateStatus(orderId, newStatus);
-      console.log(`[order] Updated order ${orderId} -> ${newStatus}`);
+      moved = await repo.transitionStatus(orderId, 'processing', newStatus);
     } catch {
       throw new AppError(MESSAGES.ORDER_STATUS_UPDATE_FAILED);
+    }
+
+    if (!moved) {
+      console.log(`[order] Ignoring inventory event for order ${orderId}: not processing`);
+      return;
+    }
+    console.log(`[order] Updated order ${orderId} -> ${newStatus}`);
+
+    if (newStatus === 'completed') {
+      const items = (event.items || [])
+        .filter((it) => it.status === 'reserved')
+        .map(({ productId, quantity }) => ({ productId, quantity }));
+
+      await this.getEventPublisher().publishInventoryCommit({ orderId, items }, undefined, orderId);
     }
   }
 }
