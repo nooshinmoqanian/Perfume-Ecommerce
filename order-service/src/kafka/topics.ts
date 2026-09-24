@@ -1,6 +1,7 @@
 export const ORDER_TOPICS = {
   ORDERS: 'orders',
   INVENTORY_EVENTS: 'inventory-events',
+  INVENTORY_COMMITS: 'inventory-commits',
 } as const;
 
 export type OrderTopic = (typeof ORDER_TOPICS)[keyof typeof ORDER_TOPICS];

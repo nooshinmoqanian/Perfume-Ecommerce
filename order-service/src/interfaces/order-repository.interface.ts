@@ -9,6 +9,8 @@ export interface IOrderRepository {
   findAll(filter?: Filter<Order>): Promise<Order[]>;
   update(id: string, patch: Partial<Order>): Promise<UpdateSummary>;
   updateStatus(id: string, status: Order['status']): Promise<UpdateSummary>;
+  // Moves an order to `to` only if it is currently `from`; false when it was not.
+  transitionStatus(id: string, from: Order['status'], to: Order['status']): Promise<boolean>;
 }
 
 export default IOrderRepository;

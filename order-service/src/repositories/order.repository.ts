@@ -19,7 +19,7 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async findAll(filter: Filter<Order> = {}) {
-    return dbGuard(() => this.collection.find(filter).toArray());
+    return dbGuard(() => this.collection.find(filter).sort({ createdAt: -1 }).toArray());
   }
 
   async update(id: string, patch: Partial<Order>): Promise<UpdateSummary> {
@@ -38,6 +38,13 @@ export class OrderRepository implements IOrderRepository {
 
   async updateStatus(id: string, status: Order['status']) {
     return this.update(id, { status });
+  }
+
+  async transitionStatus(id: string, from: Order['status'], to: Order['status']) {
+    return dbGuard(async () => {
+      const res = await this.collection.updateOne({ id, status: from } as Filter<Order>, { $set: { status: to } });
+      return (res.modifiedCount ?? 0) > 0;
+    });
   }
 }
 
