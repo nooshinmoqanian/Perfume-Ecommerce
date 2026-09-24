@@ -62,7 +62,7 @@ export default function makeUserController(userService: IUserService) {
 
       const user = await userService.getById(userId);
       if (!user) throw new AppError('NOT_FOUND', 'user not found', 404);
-      const purchases = await userService.getPurchasesByEmail((user as any).email);
+      const purchases = await userService.getPurchases(user as any, req.get('authorization'));
       return res.json(purchases || []);
     } catch (err) {
       error({ scope: 'user', action: 'get_purchases_failed' }, err);

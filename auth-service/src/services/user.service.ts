@@ -141,12 +141,14 @@ export default class UserService implements IUserService {
     }
   }
  
-  // Fetch purchases for a given user by email via order-service
-  async getPurchasesByEmail(email: string) {
+  // Fetch a user's purchases via order-service. The caller's Authorization
+  // header is forwarded; order-service scopes non-admins to their own orders.
+  async getPurchases(user: { _id?: unknown; id?: string; email: string }, authorization?: string) {
     try {
       const ordersBase = process.env.ORDERS_BASE || 'http://order-service:3001';
-      const url = `${ordersBase}/api/orders?customerEmail=${encodeURIComponent(email)}`;
-      const res = await fetch(url);
+      const search = new URLSearchParams({ userId: String(user._id || user.id), customerEmail: user.email });
+      const url = `${ordersBase}/api/orders?${search.toString()}`;
+      const res = await fetch(url, { headers: authorization ? { Authorization: authorization } : {} });
       if (!res.ok) return [];
       const data = await res.json();
       return data;

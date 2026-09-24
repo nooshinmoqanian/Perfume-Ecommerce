@@ -24,7 +24,7 @@ export interface IUserService {
   updateProfile(id: string, fields: ProfileUpdate): Promise<PublicUser | null>;
   register(email: string, password: string, role?: 'user' | 'admin'): Promise<PublicUser>;
   login(email: string, password: string): Promise<PublicUser | null>;
-  getPurchasesByEmail(email: string): Promise<unknown>;
+  getPurchases(user: { _id?: unknown; id?: string; email: string }, authorization?: string): Promise<unknown>;
   adminDashboard(): Promise<{ totalUsers: number; recentUsers: PublicUser[] }>;
 }
 
