@@ -92,9 +92,9 @@ class InventoryService implements InventoryServiceInterface {
     try {
       session = await startSession();
       await session.withTransaction(async () => {
-        // release reserved quantity back to available: decrement reserved, increment stock
+        // reserve() only bumps `reserved` (available = stock - reserved), so
+        // releasing just gives that quantity back; stock itself is untouched.
         await this.productRepo!.updateReserved(productId, -quantity, session);
-        await this.productRepo!.updateStock(productId, quantity, session);
 
         if (this.logRepo) {
           const log: InventoryLog = {

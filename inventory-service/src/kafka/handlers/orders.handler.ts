@@ -48,6 +48,23 @@ export async function handleOrdersTopic({ payload, requestId, headers }: TopicHa
     }
   }
 
+  // Compensate: an order that cannot be fully reserved must not keep holding
+  // the items that did reserve.
+  if (!allReserved) {
+    for (const item of reservationResults) {
+      if (item.status !== 'reserved') continue;
+      try {
+        await InventoryService.release(item.productId, item.quantity);
+      } catch (error: any) {
+        console.error('[inventory:kafka] Failed to release reservation', {
+          orderId: order.id,
+          productId: item.productId,
+          error: error?.message || String(error),
+        });
+      }
+    }
+  }
+
   const approvalEvent: OrderApprovalEventPayload = {
     orderId: order.id,
     status: allReserved ? 'approved' : 'partial_failed',
